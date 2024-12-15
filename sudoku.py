@@ -2,10 +2,10 @@ import inquirer
 import numpy as np
 from matplotlib import pyplot as plt
 
-from erase import SymmetricEraser, AutomorphicEraser
+from erase import BalancedEraser, AutomorphicEraser
 
 ERASER_MAP = {
-    "None (Standard)": SymmetricEraser,
+    "None (Standard)": BalancedEraser,
     "Automorphic": AutomorphicEraser
 }
 
@@ -19,18 +19,18 @@ class Sudoku:
         puzzle = self.generate_sudoku()
         self.plot(puzzle)
 
-
-    def is_valid(self, row, col, num):
+    @staticmethod
+    def is_valid(board, row, col, num):
         """ Checks if number is present in same row, column, or subgrid. """
         subgrid_row = row // 3
         subgrid_col = col // 3
 
-        if num in self.board[row]:
+        if num in board[row]:
             return False
-        if num in [self.board[i][col] for i in range(9)]:
+        if num in [board[i][col] for i in range(9)]:
             return False
 
-        subgrid = self.board[
+        subgrid = board[
                   subgrid_row * 3: (subgrid_row + 1) * 3,
                   subgrid_col * 3: (subgrid_col + 1) * 3
                   ]
@@ -40,17 +40,17 @@ class Sudoku:
 
         return True
 
-
-    def find_empty_cell(self) -> tuple | None:
+    @staticmethod
+    def find_empty_cell(board) -> tuple | None:
         for i in range(9):
             for j in range(9):
-                if self.board[i][j] == 0:
+                if board[i][j] == 0:
                     return i, j
         return None
 
 
     def populate_board(self) -> bool:
-        empty_cell = self.find_empty_cell()
+        empty_cell = self.find_empty_cell(self.board)
 
         if not empty_cell:
             return True
@@ -58,7 +58,7 @@ class Sudoku:
         row, col = empty_cell
 
         for number in range(1, 10):
-            if self.is_valid(row, col, number):
+            if self.is_valid(self.board, row, col, number):
                 self.board[row][col] = number
 
                 if self.populate_board():

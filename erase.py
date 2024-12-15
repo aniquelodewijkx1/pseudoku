@@ -3,6 +3,9 @@ import random
 from abc import ABC, abstractmethod
 
 import numpy as np
+from poetry.console.commands import self
+
+from sudoku import Sudoku
 
 LEVEL_MAP = {
     'easy': 36,
@@ -24,7 +27,35 @@ class Eraser(ABC):
         pass
 
 
-class SymmetricEraser(Eraser, ABC):
+    @staticmethod
+    def has_unique_solution(puzzle: np.ndarray) -> bool:
+        """ Check if a puzzle has one solution with recursive backtracking. """
+        solutions = 0
+
+        def solve(puzzle: np.ndarray, solutions: int) -> None:
+            if Sudoku.find_empty_cell(puzzle) is None:
+                solutions += 1
+                return
+            if solutions > 1:
+                return
+
+            for row in range(9):
+                for col in range(9):
+                    if puzzle[row, col] == 0:
+                        for num in range(1, 10):
+                            if Sudoku.is_valid(row, col, num):
+                                puzzle[row, col] = num
+                                solve(puzzle, solutions)
+                                puzzle[row, col] = 0
+            return
+
+
+        solve(puzzle, solutions)
+        return solutions == 1
+
+
+class BalancedEraser(Eraser, ABC):
+    """ Erases a balanced number of cells from each subgrid."""
     def __init__(self, board: np.ndarray, difficulty: str):
         super().__init__(board, difficulty)
 
@@ -48,9 +79,13 @@ class SymmetricEraser(Eraser, ABC):
             while erased < remove_per_cell:
                 random_row = random.randint(row_start, row_start + 2)
                 random_col = random.randint(col_start, col_start + 2)
-                if self.puzzle[random_row][random_col] != 0:
+                if val := self.puzzle[random_row][random_col] != 0:
                     self.puzzle[random_row][random_col] = 0
-                    erased += 1
+                    # verify single solution or restore the cell
+                    if Eraser.has_unique_solution(self.puzzle):
+                        erased += 1
+                    else:
+                        self.puzzle[random_row][random_col] = val
 
         erased = 0
         while erased < leftover:
@@ -64,9 +99,21 @@ class SymmetricEraser(Eraser, ABC):
 
 
 class AutomorphicEraser(Eraser, ABC):
+    """https://en.wikipedia.org/wiki/Mathematics_of_Sudoku"""
     def __init__(self, board: np.ndarray, difficulty: str):
         super().__init__(board, difficulty)
 
 
     def erase(self) -> np.ndarray:
         pass
+
+
+class MinimalcEraser(Eraser, ABC):
+    """ Erases such that no clue can be removed that retains one solution."""
+    def __init__(self, board: np.ndarray, difficulty: str):
+        super().__init__(board, difficulty)
+
+
+    def erase(self) -> np.ndarray:
+        pass
+
