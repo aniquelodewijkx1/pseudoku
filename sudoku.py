@@ -1,11 +1,23 @@
+import inquirer
 import numpy as np
 from matplotlib import pyplot as plt
 
+from erase import SymmetricEraser, AutomorphicEraser
+
+ERASER_MAP = {
+    "None (Standard)": SymmetricEraser,
+    "Automorphic": AutomorphicEraser
+}
 
 class Sudoku:
-    def __init__(self):
+    def __init__(self, difficulty: str, trick: str):
         self.board = np.zeros((9, 9), dtype=int)
-        self.generate_sudoku()
+
+        self.difficulty = difficulty
+        self.trick = trick
+
+        puzzle = self.generate_sudoku()
+        self.plot(puzzle)
 
 
     def is_valid(self, row, col, num):
@@ -56,7 +68,16 @@ class Sudoku:
 
         return False
 
-    def plot(self):
+    def erase(self):
+        eraser_class = ERASER_MAP[self.trick]
+        eraser = eraser_class(self.board, self.difficulty)
+
+        puzzle = eraser.erase()
+
+        return puzzle
+
+    @staticmethod
+    def plot(grid):
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.set_xlim(0, 9)
         ax.set_ylim(0, 9)
@@ -73,7 +94,7 @@ class Sudoku:
         # Fill numbers
         for i in range(9):
             for j in range(9):
-                num = self.board[i, j]
+                num = grid[i, j]
                 if num != 0:
                     ax.text(j + 0.5, 9 - i - 0.5, str(num),
                             fontsize=20, ha='center', va='center')
@@ -83,13 +104,30 @@ class Sudoku:
         plt.show()
 
 
-    def generate_sudoku(self):
+    def generate_sudoku(self) -> np.ndarray:
         if self.populate_board():
-            # start taking values out
-            return self.board
+            puzzle = self.erase()
+            return puzzle
 
 
 if __name__ == '__main__':
-    sudoku = Sudoku()
-    sudoku.generate_sudoku()
-    sudoku.plot()
+    questions = [
+        inquirer.List(
+            'difficulty',
+            message="Difficulty?",
+            choices=['Easy', 'Medium', 'Hard', 'Extreme'],
+        ),
+        inquirer.List(
+            'trick',
+            message="Trick?",
+            choices=['None (Standard)', 'Automorphic'],
+        ),
+    ]
+    try:
+        answers = inquirer.prompt(questions)
+        sudoku = Sudoku(
+            difficulty=answers['difficulty'].lower(),
+            trick=answers['trick'])
+
+    except Exception:
+        print('🏜️ Run me from the terminal, thanks!')
