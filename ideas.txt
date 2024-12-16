@@ -5,3 +5,4 @@ Erase methods:
 
 Other:
 - generate a colored graph
+- killer sudoku (combo with kakuro)
