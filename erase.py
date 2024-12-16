@@ -108,7 +108,7 @@ class AutomorphicEraser(Eraser, ABC):
         pass
 
 
-class MinimalcEraser(Eraser, ABC):
+class MinimalEraser(Eraser, ABC):
     """ Erases such that no clue can be removed that retains one solution."""
     def __init__(self, board: np.ndarray, difficulty: str):
         super().__init__(board, difficulty)

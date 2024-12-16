@@ -1,0 +1,7 @@
+Erase methods:
+- geometrically symmetrical
+- automorphic
+- irregular subgrids
+
+Other:
+- generate a colored graph
