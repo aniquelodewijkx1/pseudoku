@@ -1,0 +1,38 @@
+name: Publish to PyPI
+
+# Trigger this workflow on pushes that create tags matching a version pattern
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  pypi-publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/<your-pypi-project-name>
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: pip install --upgrade pip build
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}

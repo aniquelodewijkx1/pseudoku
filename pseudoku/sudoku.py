@@ -43,8 +43,8 @@ class BalancedEraser(Eraser):
         board, difficulty, subgrid = sudoku.board, sudoku.difficulty, sudoku.subgrid
 
         num_to_remove = LEVEL_MAP[difficulty]
-        remove_per_cell = num_to_remove // 9
-        leftover = num_to_remove % 9
+        remove_per_cell = num_to_remove // sudoku.size
+        leftover = num_to_remove % sudoku.size
 
         for subgrid_id in np.unique(subgrid):
             rows, cols = np.where(subgrid == subgrid_id)
