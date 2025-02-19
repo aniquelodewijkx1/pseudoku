@@ -3,7 +3,7 @@ A sick sudoku generator.
 
 ## Installation
 ```
-pip install https://github.com/aniquelodewijkx1/sudoku.git
+pip install git+https://github.com/aniquelodewijkx1/sudoku.git
 ```
 
 ## Usage

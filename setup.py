@@ -15,7 +15,7 @@ setup(
     install_requires=requirements,
     entry_points={
         'console_scripts': [
-            'pseudoku = sudoku:main',
+            'pseudoku = pseudoku.sudoku:main',
         ],
     },
 )
