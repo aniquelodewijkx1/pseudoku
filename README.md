@@ -16,7 +16,7 @@ pip install git+https://github.com/aniquelodewijkx1/sudoku.git
         std (standard), rare
 
     -s, --size (default 9)
-        6, 8, 9
+        4, 9, 16
 
 For example, 
 ```

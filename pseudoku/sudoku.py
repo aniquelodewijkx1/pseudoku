@@ -245,7 +245,7 @@ def get_cli_args():
                         help='Difficulty level')
     parser.add_argument('-t', '--type', type=str, choices=['std', 'rare'],
                         help='Sudoku type')
-    parser.add_argument('-s', '--size', type=int, choices=[6, 8, 9],
+    parser.add_argument('-s', '--size', type=int, choices=[4, 9, 16],
                         help='Grid size')
     return parser.parse_args()
 
