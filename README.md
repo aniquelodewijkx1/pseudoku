@@ -1,13 +1,22 @@
-# 9️⃣sudoku
+# 🍙⃣pseudodoku
 A sick sudoku generator.
 
 ## Installation
 ```
-git clone https://github.com/aniquelodewijkx1/sudoku.git
+pip install https://github.com/aniquelodewijkx1/sudoku.git
 ```
 
 ## Usage
-You must run this project in a terminal so that you can choose a difficulty, size, and type.
+CLI Usage
+-d, --difficulty (required)
+    easy, medium, hard, extreme
+-t, --type (default std)
+    stf (standard), rare
+-s, --size (default 9)
+    6, 8, 9
 ```
-python sudoku.py
+pseudoku -d hard -t std -s 9
 ```
+
+## Output
+Sudoku puzzle ready for you to download!
