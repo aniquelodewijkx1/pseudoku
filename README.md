@@ -26,5 +26,7 @@ CLI Usage
 pseudoku -d hard -t std -s 9
 ```
 
+If you do not include one of the required flags, don't worry, you will be prompted to enter these.
+
 ## Output
 Sudoku puzzle ready for you to download!
