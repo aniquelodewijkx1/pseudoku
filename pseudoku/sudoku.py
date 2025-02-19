@@ -40,8 +40,6 @@ class BalancedEraser(Eraser):
     """ Erases a balanced number of cells from each subgrid."""
     @staticmethod
     def erase(sudoku: "Sudoku"):
-        logger.info("Making puzzle...")
-
         board, difficulty, subgrid = sudoku.board, sudoku.difficulty, sudoku.subgrid
 
         num_to_remove = LEVEL_MAP[difficulty]
@@ -86,7 +84,6 @@ class Sudoku:
 
 
     def find_empty_cell(self) -> tuple | None:
-        logger.info("Finding empty cell")
         """ Find cell without value. """
         for i in range(self.size):
             for j in range(self.size):
@@ -97,7 +94,6 @@ class Sudoku:
 
     def try_fill_cell(self, row: int, col: int) -> bool:
         """ Fill an empty cell with a value and check validity. """
-        logger.info("Trying fill cell")
         numbers = list(range(1, self.size + 1))
         random.shuffle(numbers)
 
@@ -126,7 +122,6 @@ class Sudoku:
 
     def is_valid(self, num: Number) -> bool:
         """ Checks if number is present in same row, column, or subgrid. """
-        logger.info("Checking validity.")
         if num.value in self.board[num.row]:
             return False
         if num.value in self.board[:, num.col]:
@@ -144,7 +139,6 @@ class Sudoku:
 
 
     def has_unique_solution(self) -> bool:
-        logger.info("Checking for single solution.")
         solutions = [0]
 
 
@@ -196,7 +190,6 @@ class Sudoku:
 
 
     def plot(self):
-        logger.info("Plotting Sudoku...")
 
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.set_xlim(0, self.size)
@@ -242,13 +235,7 @@ class Sudoku:
     def generate_sudoku(self):
         logger.info("Making sudoku...")
         if self.populate_board():
-            logger.info("Sudoku populated.")
-
-            logger.info("Erasing...")
             BalancedEraser.erase(self)
-            logger.info("Sudoku erased.")
-
-            logger.info("Plotting...")
             self.plot()
 
 
@@ -307,15 +294,13 @@ def main():
         grid_type = answers['type']
         size = answers['size']
 
-    print('Instantiated eraser...')
     regular_subgrid = RegularSubgrid(size)
-    print('Instantiated regular subgrid...')
-    print('Instantiated sudoku...')
+
     sudoku = Sudoku(
         size=size,
         difficulty=difficulty,
         subgrid=regular_subgrid)
-    print('Generating sudoku...')
+
     sudoku.generate_sudoku()
 
 
