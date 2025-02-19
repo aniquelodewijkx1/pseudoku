@@ -1,4 +1,4 @@
-# 🍙⃣pseudodoku
+# 🍙pseudoku
 A sick sudoku generator.
 
 ## Installation
