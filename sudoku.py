@@ -1,3 +1,4 @@
+import argparse
 import copy
 import logging
 import random
@@ -43,7 +44,7 @@ class BalancedEraser(Eraser):
 
         board, difficulty, subgrid = sudoku.board, sudoku.difficulty, sudoku.subgrid
 
-        num_to_remove = LEVEL_MAP[difficulty.lower()]
+        num_to_remove = LEVEL_MAP[difficulty]
         remove_per_cell = num_to_remove // 9
         leftover = num_to_remove % 9
 
@@ -251,30 +252,61 @@ class Sudoku:
             self.plot()
 
 
-if __name__ == '__main__':
+def get_cli_args():
+    parser = argparse.ArgumentParser(description="Sudoku CLI")
+    parser.add_argument('-d', '--difficulty', type=str, choices=['easy', 'medium', 'hard', 'extreme'],
+                        help='Difficulty level')
+    parser.add_argument('-t', '--type', type=str, choices=['std', 'rare'],
+                        help='Sudoku type')
+    parser.add_argument('-s', '--size', type=int, choices=[6, 8, 9],
+                        help='Grid size')
+    return parser.parse_args()
+
+
+def get_interactive_args(cli_args):
+
     questions = [
         inquirer.List(
             'difficulty',
             message="Difficulty?",
-            choices=['Easy', 'Medium', 'Hard', 'Extreme'],
+            choices=['easy', 'medium', 'hard', 'extreme'],
+            default=cli_args.difficulty if cli_args.difficulty else 'Easy'
         ),
         inquirer.List(
             'type',
             message="Type?",
-            choices=['None (Standard)', 'Irregular Subgrids'],
+            choices=['std', 'rare'],
+            default=cli_args.type if cli_args.type else 'std'
         ),
         inquirer.List(
             'size',
             message="Grid size?",
             choices=[6, 8, 9],
-        ),
+            default=cli_args.size if cli_args.size else 9
+        )
     ]
-    answers = inquirer.prompt(questions)
+    return inquirer.prompt(questions)
+
+
+def main():
+    cli_args = get_cli_args()
+
+    if cli_args.difficulty is not None and cli_args.size is not None:
+        difficulty = cli_args.difficulty
+        grid_type = cli_args.type  # grid_type remains available if you need it later
+        if cli_args.size:
+            size = cli_args.size
+        else:
+            size = 9
+    else:
+        answers = get_interactive_args(cli_args)
+        difficulty = answers['difficulty']
+        grid_type = answers['type']
+        size = answers['size']
 
     print('Instantiated eraser...')
-    regular_subgrid = RegularSubgrid(answers['size'])
+    regular_subgrid = RegularSubgrid(size)
     print('Instantiated regular subgrid...')
-    size, difficulty = answers['size'], answers['difficulty']
     print('Instantiated sudoku...')
     sudoku = Sudoku(
         size=size,
@@ -282,3 +314,7 @@ if __name__ == '__main__':
         subgrid=regular_subgrid)
     print('Generating sudoku...')
     sudoku.generate_sudoku()
+
+
+if __name__ == '__main__':
+    main()
