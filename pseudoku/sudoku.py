@@ -10,7 +10,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pydantic import BaseModel, conint
 
-from subgrid import Subgrid, RegularSubgrid
+from pseudoku.subgrid import Subgrid, RegularSubgrid
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
