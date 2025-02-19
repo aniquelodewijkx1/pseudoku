@@ -13,7 +13,7 @@ pip install git+https://github.com/aniquelodewijkx1/sudoku.git
         easy, medium, hard, extreme
 
     -t, --type (default std)
-        std (standard), rare
+        std (standard), rare (currently WIP)
 
     -s, --size (default 9)
         4, 9, 16
