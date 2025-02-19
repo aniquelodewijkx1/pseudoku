@@ -23,9 +23,9 @@ LEVEL_MAP = {
 }
 
 class Number(BaseModel):
-    value: conint(ge=1, le=9)
-    row: conint(ge=0, le=8)
-    col: conint(ge=0, le=8)
+    value: conint(ge=1, le=16)
+    row: conint(ge=0, le=15)
+    col: conint(ge=0, le=15)
 
 
 class Eraser(ABC):
@@ -268,7 +268,7 @@ def get_interactive_args(cli_args):
         inquirer.List(
             'size',
             message="Grid size?",
-            choices=[6, 8, 9],
+            choices=[4, 9, 16],
             default=cli_args.size if cli_args.size else 9
         )
     ]
