@@ -32,7 +32,7 @@ class BalancedEraser(Eraser):
 
         board, difficulty, subgrid = sudoku.board, sudoku.difficulty, sudoku.subgrid
 
-        num_to_remove = LEVEL_MAP[difficulty]
+        num_to_remove = LEVEL_MAP[difficulty.lower()]
         remove_per_cell = num_to_remove // 9
         leftover = num_to_remove % 9
 

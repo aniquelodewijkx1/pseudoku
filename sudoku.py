@@ -1,6 +1,7 @@
 import copy
 import logging
 import random
+from abc import ABC
 
 import inquirer
 import matplotlib.patches as patches
@@ -8,12 +9,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pydantic import BaseModel, conint
 
-from erase import Eraser, BalancedEraser
 from subgrid import Subgrid, RegularSubgrid
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+LEVEL_MAP = {
+    'easy': 36,
+    'medium': 52,
+    'hard': 56,
+    'extreme': 60
+}
 
 class Number(BaseModel):
     value: conint(ge=1, le=9)
@@ -21,12 +27,60 @@ class Number(BaseModel):
     col: conint(ge=0, le=8)
 
 
+class Eraser(ABC):
+
+    @staticmethod
+    def erase(sudoku: "Sudoku"):
+        """ Abstract method to erase numbers from full sudoku to create a puzzle. """
+        pass
+
+
+class BalancedEraser(Eraser):
+    """ Erases a balanced number of cells from each subgrid."""
+    @staticmethod
+    def erase(sudoku: "Sudoku"):
+        logger.info("Making puzzle...")
+
+        board, difficulty, subgrid = sudoku.board, sudoku.difficulty, sudoku.subgrid
+
+        num_to_remove = LEVEL_MAP[difficulty.lower()]
+        remove_per_cell = num_to_remove // 9
+        leftover = num_to_remove % 9
+
+        for subgrid_id in np.unique(subgrid):
+            rows, cols = np.where(subgrid == subgrid_id)
+            cells = list(zip(rows, cols))
+
+            erased = 0
+            while erased < remove_per_cell and cells:
+                rand_row, rand_col = random.choice(list(cells))
+                cells.remove((rand_row, rand_col))
+
+                if board[rand_row][rand_col] != 0:
+                    val = board[rand_row][rand_col]
+                    board[rand_row][rand_col] = 0
+                    # verify single solution or restore the cell
+                    if sudoku.has_unique_solution():
+                        erased += 1
+                    else:
+                        board[rand_row][rand_col] = val
+
+        erased = 0
+        while erased < leftover:
+            random_row = random.randint(0, sudoku.size - 1)
+            random_col = random.randint(0, sudoku.size - 1)
+            if board[random_row][random_col] != 0:
+                board[random_row][random_col] = 0
+                erased += 1
+
+        return
+
+
 class Sudoku:
-    def __init__(self, size: int, difficulty: str, eraser: Eraser, subgrid: Subgrid):
+    def __init__(self, size: int, difficulty: str, subgrid: Subgrid):
         self.board = np.zeros((size, size), dtype=int)
         self.size = size
         self.difficulty = difficulty
-        self.eraser = eraser
         self.subgrid = subgrid.grid
 
 
@@ -50,7 +104,11 @@ class Sudoku:
             num = Number(value=number, row=row, col=col)
             if self.is_valid(num=num):
                 self.board[row][col] = number
-                return True
+
+                if self.populate_board():
+                    return True
+                # backtrack if failed
+                self.board[row][col] = 0
 
         return False
 
@@ -62,12 +120,7 @@ class Sudoku:
             return True
 
         row, col = empty_cell
-        if self.try_fill_cell(row, col):
-            if self.populate_board():
-                return True
-
-        self.board[row, col] = 0  # backtrack
-        return False
+        return self.try_fill_cell(row=row, col=col)
 
 
     def is_valid(self, num: Number) -> bool:
@@ -90,15 +143,39 @@ class Sudoku:
 
 
     def has_unique_solution(self) -> bool:
-        """ Check if a board has one solution with recursive backtracking. """
         logger.info("Checking for single solution.")
         solutions = [0]
+
+
+        def find_empty_cell_in(board: np.ndarray) -> tuple | None:
+            for i in range(self.size):
+                for j in range(self.size):
+                    if board[i][j] == 0:
+                        return i, j
+            return None
+
+
+        def is_valid_on_board(num: Number, board: np.ndarray) -> bool:
+            if num.value in board[num.row]:
+                return False
+            if num.value in board[:, num.col]:
+                return False
+
+            subgrid_id = self.subgrid[num.row, num.col]
+            rows, cols = np.where(self.subgrid == subgrid_id)
+            cellmates = list(zip(rows, cols))
+            subgrid_vals = [board[r][c] for r, c in cellmates]
+            if num.value in subgrid_vals:
+                return False
+
+            return True
+
 
         def solve(board: np.ndarray, solutions: list[int]) -> None:
             if solutions[0] > 1:
                 return
 
-            empty = self.find_empty_cell()
+            empty = find_empty_cell_in(board)
             if not empty:
                 solutions[0] += 1
                 return
@@ -106,14 +183,14 @@ class Sudoku:
             row, col = empty
             for number in range(1, self.size + 1):
                 num = Number(value=number, row=row, col=col)
-                if self.is_valid(num=num):
-                    board[row, col] = num
+                if is_valid_on_board(num, board):
+                    board[row, col] = number  # assign integer value
                     solve(board, solutions)
                     board[row, col] = 0  # backtrack
 
-        puzzle_copy = copy.deepcopy(self.board)
-        solve(board=puzzle_copy, solutions=solutions)
 
+        puzzle_copy = copy.deepcopy(self.board)
+        solve(puzzle_copy, solutions)
         return solutions[0] == 1
 
 
@@ -165,9 +242,11 @@ class Sudoku:
         logger.info("Making sudoku...")
         if self.populate_board():
             logger.info("Sudoku populated.")
+
             logger.info("Erasing...")
-            self.eraser.erase(self)
+            BalancedEraser.erase(self)
             logger.info("Sudoku erased.")
+
             logger.info("Plotting...")
             self.plot()
 
@@ -192,13 +271,14 @@ if __name__ == '__main__':
     ]
     answers = inquirer.prompt(questions)
 
-    balanced_eraser = BalancedEraser()
+    print('Instantiated eraser...')
     regular_subgrid = RegularSubgrid(answers['size'])
+    print('Instantiated regular subgrid...')
     size, difficulty = answers['size'], answers['difficulty']
+    print('Instantiated sudoku...')
     sudoku = Sudoku(
         size=size,
         difficulty=difficulty,
-        eraser=balanced_eraser,
         subgrid=regular_subgrid)
-
+    print('Generating sudoku...')
     sudoku.generate_sudoku()
