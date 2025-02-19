@@ -291,9 +291,12 @@ def get_interactive_args(cli_args):
 def main():
     cli_args = get_cli_args()
 
-    if cli_args.difficulty is not None and cli_args.size is not None:
+    if cli_args.difficulty is not None:
         difficulty = cli_args.difficulty
-        grid_type = cli_args.type  # grid_type remains available if you need it later
+        if cli_args.type:
+            grid_type = cli_args.type  # grid_type remains available if you need it later
+        else:
+            grid_type = 'std'
         if cli_args.size:
             size = cli_args.size
         else:
