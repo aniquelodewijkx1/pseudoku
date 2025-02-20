@@ -1,107 +1,127 @@
 import numpy as np
-from matplotlib import pyplot as plt, patches
+import tkinter as tk
 
-from pseudoku.subgrid import Subgrid, RegularSubgrid, HyperSubgrid
+from subgrid import Subgrid, RegularSubgrid, HyperSubgrid
 
+def plot(subgrids: list[Subgrid], board_values: np.ndarray, correct_values: np.ndarray):
+    print('board values')
+    print(board_values)
+    print('correct values')
+    print(correct_values)
+    # Get the regular subgrid mapping.
+    grid_ids = None
+    for sub in subgrids:
+        if isinstance(sub, RegularSubgrid):
+            grid_ids = sub.get_subgrid()
+            break
+    if grid_ids is None:
+        raise ValueError("No RegularSubgrid found in subgrids.")
 
-def plot(size: int, subgrids: list[Subgrid], sudoku: np.ndarray):
-    
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.set_xlim(0, size)
-    ax.set_ylim(0, size)
-    ax.set_xticks(np.arange(0, size + 1, 1))
-    ax.set_yticks(np.arange(0, size + 1, 1))
-    ax.grid(which='both', color='black', linewidth=1)
+    # Create the main window and a canvas for drawing.
+    root = tk.Tk()
+    root.title("Pseudoku")
+    cell_size = 50
+    rows, cols = board_values.shape
+    canvas_width = cols * cell_size
+    canvas_height = rows * cell_size
 
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
+    # Create a canvas with a white background.
+    canvas = tk.Canvas(root, width=canvas_width, height=canvas_height, bg="white")
+    canvas.pack()
 
-    # draw subgrid boundaries
-    for subgrid in subgrids:
-        if isinstance(subgrid, RegularSubgrid):
-                subgrid_ids = np.unique(subgrid)
-                for subgrid_id in subgrid_ids:
-                    # find coordinates of the cells in current subgrid
-                    rows, cols = np.where(subgrid == subgrid_id)
-                    if len(rows) > 0 and len(cols) > 0:
-                        # determine bounding box for subgrid
-                        min_row, max_row = rows.min(), rows.max()
-                        min_col, max_col = cols.min(), cols.max()
+    # Dictionary to hold the Entry widgets.
+    entries = {}
 
-                        # convert grid coordinates to plot coordinates
-                        lower_left = (min_col, size - 1 - max_row)
-                        width = max_col - min_col + 1
-                        height = max_row - min_row + 1
+    # Create the grid of Entry widgets on the canvas.
+    for i in range(rows):
+        for j in range(cols):
+            e = tk.Entry(root, width=2, font=("Helvetica", 20), justify='center',
+                         bg="white", fg="black", relief="flat", bd=0, highlightthickness=0)
+            # Place the entry widget in the center of its cell.
+            x = j * cell_size + cell_size / 2
+            y = i * cell_size + cell_size / 2
+            canvas.create_window(x, y, window=e, width=cell_size - 10, height=cell_size - 10)
+            if board_values[i, j] != 0:  # assuming 0 represents an empty cell
+                e.insert(0, str(board_values[i, j]))
+                # For prefilled cells, ensure disabled colors are white by default.
+                e.config(state='disabled', disabledforeground='black', disabledbackground='white')
+            entries[(i, j)] = e
 
-                        # rectangle patch for subgrid boundary
-                        rect = patches.Rectangle(lower_left, width, height,
-                                                 linewidth=2.5, edgecolor='black', facecolor='none')
-                        ax.add_patch(rect)
+    # Draw thin grid lines for every cell.
+    for i in range(rows + 1):
+        canvas.create_line(0, i * cell_size, canvas_width, i * cell_size, fill="gray", width=1)
+    for j in range(cols + 1):
+        canvas.create_line(j * cell_size, 0, j * cell_size, canvas_height, fill="gray", width=1)
 
-        if isinstance(subgrid, HyperSubgrid):
-            import tkinter as tk
-            import numpy as np
+    # Draw thicker lines between subgrids based on the regular grid_ids array.
+    # Vertical thick lines:
+    for i in range(rows):
+        for j in range(cols - 1):
+            if grid_ids[i, j] != grid_ids[i, j + 1]:
+                x = (j + 1) * cell_size
+                canvas.create_line(x, i * cell_size, x, (i + 1) * cell_size, fill="black", width=3)
+    # Horizontal thick lines:
+    for i in range(rows - 1):
+        for j in range(cols):
+            if grid_ids[i, j] != grid_ids[i + 1, j]:
+                y = (i + 1) * cell_size
+                canvas.create_line(j * cell_size, y, (j + 1) * cell_size, y, fill="black", width=3)
 
-            def create_sudoku_board(board, subgrid_ids):
-                root = tk.Tk()
-                root.title("Sudoku")
+    # --- Additional plotting for HyperSubgrid(s) ---
+    # For each HyperSubgrid, shade cells that are in its region and already nonempty.
+    for sub in subgrids:
+        if isinstance(sub, HyperSubgrid):
+            hyper_mapping = sub.get_subgrid()
+            for i in range(rows):
+                for j in range(cols):
+                    # Here, a nonzero in hyper_mapping indicates the cell is part of the hyper region.
+                    # Shade the cell only if board_values is nonzero.
+                    if hyper_mapping[i, j] != 0:
+                        entry = entries[(i, j)]
+                        entry.config(bg="palegreen")
+                        if entry.cget("state") == "disabled":
+                            entry.config(disabledbackground="palegreen")
+    # -----------------------------------------------------
 
-                rows, cols = board.shape
-                entries = {}
+    # Label to display messages in the same window.
+    message_label = tk.Label(root, text="", font=("Helvetica", 14))
+    message_label.pack(pady=10)
 
-                # Adjust cell size, fonts, etc., as needed
-                for i in range(rows):
-                    for j in range(cols):
-                        e = tk.Entry(root, width=2, font=("Helvetica", 20), justify='center')
-                        e.grid(row=i, column=j, padx=5, pady=5)
-                        if board[i, j] != 0:  # Assuming 0 represents an empty cell
-                            e.insert(0, str(board[i, j]))
-                            e.config(state='disabled', disabledforeground='black')
-                        entries[(i, j)] = e
+    # Helper function to fade the text color from red to black.
+    def fade_font(entry, colors=["#FF0000", "#CC0000", "#990000", "#660000", "#330000", "#000000"], index=0):
+        if index < len(colors):
+            entry.config(fg=colors[index])
+            entry.after(300, lambda: fade_font(entry, colors, index+1))
 
+    # Button callback to check the solution.
+    def check_solution():
+        error_found = False
+        filled_all = True
+        for (i, j), entry in entries.items():
+            # Skip disabled (prefilled) cells.
+            if str(entry.cget("state")) == "disabled":
+                continue
+            val = entry.get().strip()
+            if val == "":
+                filled_all = False
+                continue
+            try:
+                user_val = int(val)
+            except ValueError:
+                error_found = True
+                fade_font(entry)
+                continue
+            if user_val != correct_values[i, j]:
+                error_found = True
+                fade_font(entry)
+        if error_found:
+            message_label.config(text="At least one cell is incorrect.", fg="red")
+        elif not filled_all:
+            message_label.config(text="Perfect so far!", fg="blue")
+        else:
+            message_label.config(text="Congratulations!", fg="green")
 
-                # Optionally, add a button to validate the solution
-                def check_solution():
-                    user_solution = np.zeros((rows, cols), dtype=int)
-                    for (i, j), entry in entries.items():
-                        try:
-                            user_solution[i, j] = int(entry.get())
-                        except ValueError:
-                            user_solution[i, j] = 0  # or handle invalid input as needed
-                    print("User solution:")
-                    print(user_solution)
-                    # Here, you could add code to check the validity of the solution
+    check_btn = tk.Button(root, text="Check", command=check_solution, font=("Helvetica", 14))
+    check_btn.pack(pady=10)
 
-
-                check_btn = tk.Button(root, text="Check", command=check_solution)
-                check_btn.grid(row=rows, column=0, columnspan=cols, pady=10)
-
-                root.mainloop()
-
-
-            # Example usage:
-            # Generate a sample 4x4 board (use your generator for a larger board)
-            board = np.array([
-                [1, 0, 0, 2],
-                [0, 2, 1, 0],
-                [0, 1, 2, 0],
-                [2, 0, 0, 1]
-            ])
-            subgrid_ids = np.array([
-                [1, 1, 2, 2],
-                [1, 1, 2, 2],
-                [3, 3, 4, 4],
-                [3, 3, 4, 4]
-            ])
-            create_sudoku_board(board, subgrid_ids)
-
-
-    # fill in numbers from grid
-    for i in range(size):
-        for j in range(size):
-            num = board[i, j]
-            if num != 0:
-                ax.text(j + 0.5, size - i - 0.5, str(num),
-                        fontsize=20, ha='center', va='center')
-
-    plt.show()
+    root.mainloop()
