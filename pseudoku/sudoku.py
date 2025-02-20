@@ -3,15 +3,13 @@ import copy
 import logging
 import random
 from abc import ABC
-
+from yaspin import yaspin
 import inquirer
-import matplotlib.patches as patches
 import numpy as np
-from matplotlib import pyplot as plt
 from pydantic import BaseModel, conint
 
-from pseudoku.plot import plot
-from pseudoku.subgrid import Subgrid, RegularSubgrid, HyperSubgrid
+from plot import plot
+from subgrid import Subgrid, RegularSubgrid, HyperSubgrid
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -41,7 +39,8 @@ class BalancedEraser(Eraser):
     """ Erases a balanced number of cells from each subgrid."""
     @staticmethod
     def erase(sudoku: "Sudoku"):
-        board, difficulty, subgrid = sudoku.board, sudoku.difficulty, sudoku.subgrid
+        board, difficulty = sudoku.board, sudoku.difficulty
+        subgrid = RegularSubgrid(sudoku.size).get_subgrid()
 
         num_to_remove = LEVEL_MAP[difficulty]
         remove_per_cell = num_to_remove // sudoku.size
@@ -78,10 +77,11 @@ class BalancedEraser(Eraser):
 
 class Sudoku:
     def __init__(self, size: int, difficulty: str, subgrids: list[Subgrid]):
+        self.answer = None
         self.board = np.zeros((size, size), dtype=int)
         self.size = size
         self.difficulty = difficulty
-        self.subgrids = [subgrids.grid for subgrid in subgrids]
+        self.subgrids = [subgrid.get_subgrid() for subgrid in subgrids]
 
 
     def find_empty_cell(self) -> tuple | None:
@@ -131,9 +131,11 @@ class Sudoku:
 
         for subgrid in self.subgrids:
             subgrid_id = subgrid[num.row, num.col]
+            if subgrid_id == 0:
+                continue
+
             rows, cols =  np.where(subgrid == subgrid_id)
             cellmates = list(zip(rows, cols))
-
             subgrid_vals = [self.board[r][c] for r, c in cellmates]
             if num.value in subgrid_vals:
                 return False
@@ -170,7 +172,6 @@ class Sudoku:
 
             return True
 
-
         def solve(board: np.ndarray, solutions: list[int]) -> None:
             if solutions[0] > 1:
                 return
@@ -195,10 +196,14 @@ class Sudoku:
 
 
     def generate_sudoku(self):
-        logger.info("Making sudoku...")
-        if self.populate_board():
-            BalancedEraser.erase(self)
-            self.plot()
+        with yaspin(text="Generating sudoku...", color="yellow") as spinner:
+            if self.populate_board():
+                spinner.ok("✔")
+                self.answer = copy.deepcopy(self.board)
+                with yaspin(text="Making sure there's a single solution...", color="light_red") as spinner2:
+                    BalancedEraser.erase(self)
+                spinner2.ok("✔")
+        return self.board
 
 
 def get_cli_args():
@@ -243,7 +248,7 @@ def main():
     # only 'difficulty' is a required flag
     if cli_args.difficulty is not None:
         difficulty = cli_args.difficulty
-        grid_type = 'standard' if not cli_args.size else cli_args.size
+        grid_type = 'standard' if not cli_args.size else cli_args.type
         size = 9 if not cli_args.size else cli_args.size
 
     else:
@@ -263,11 +268,11 @@ def main():
     sudoku = Sudoku(
         size=size,
         difficulty=difficulty,
-        subgrids=[subgrids])
+        subgrids=subgrids)
 
     sudoku.generate_sudoku()
 
-    plot(sudoku)
+    plot(subgrids, sudoku.board, sudoku.answer)
 
 
 if __name__ == '__main__':
