@@ -10,7 +10,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from pydantic import BaseModel, conint
 
-from pseudoku.subgrid import Subgrid, RegularSubgrid
+from pseudoku.plot import plot
+from pseudoku.subgrid import Subgrid, RegularSubgrid, HyperSubgrid
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -76,11 +77,11 @@ class BalancedEraser(Eraser):
 
 
 class Sudoku:
-    def __init__(self, size: int, difficulty: str, subgrid: Subgrid):
+    def __init__(self, size: int, difficulty: str, subgrids: list[Subgrid]):
         self.board = np.zeros((size, size), dtype=int)
         self.size = size
         self.difficulty = difficulty
-        self.subgrid = subgrid.grid
+        self.subgrids = [subgrids.grid for subgrid in subgrids]
 
 
     def find_empty_cell(self) -> tuple | None:
@@ -121,19 +122,21 @@ class Sudoku:
 
 
     def is_valid(self, num: Number) -> bool:
-        """ Checks if number is present in same row, column, or subgrid. """
+        """ Checks if number is present in same row, column, or subgrid(s). """
         if num.value in self.board[num.row]:
             return False
+
         if num.value in self.board[:, num.col]:
             return False
 
-        subgrid_id = self.subgrid[num.row, num.col]
-        rows, cols =  np.where(self.subgrid == subgrid_id)
-        cellmates = list(zip(rows, cols))
+        for subgrid in self.subgrids:
+            subgrid_id = subgrid[num.row, num.col]
+            rows, cols =  np.where(subgrid == subgrid_id)
+            cellmates = list(zip(rows, cols))
 
-        subgrid_vals = [self.board[r][c] for r, c in cellmates]
-        if num.value in subgrid_vals:
-            return False
+            subgrid_vals = [self.board[r][c] for r, c in cellmates]
+            if num.value in subgrid_vals:
+                return False
 
         return True
 
@@ -153,15 +156,17 @@ class Sudoku:
         def is_valid_on_board(num: Number, board: np.ndarray) -> bool:
             if num.value in board[num.row]:
                 return False
+
             if num.value in board[:, num.col]:
                 return False
 
-            subgrid_id = self.subgrid[num.row, num.col]
-            rows, cols = np.where(self.subgrid == subgrid_id)
-            cellmates = list(zip(rows, cols))
-            subgrid_vals = [board[r][c] for r, c in cellmates]
-            if num.value in subgrid_vals:
-                return False
+            for subgrid in self.subgrids:
+                subgrid_id = subgrid[num.row, num.col]
+                rows, cols = np.where(subgrid == subgrid_id)
+                cellmates = list(zip(rows, cols))
+                subgrid_vals = [board[r][c] for r, c in cellmates]
+                if num.value in subgrid_vals:
+                    return False
 
             return True
 
@@ -189,49 +194,6 @@ class Sudoku:
         return solutions[0] == 1
 
 
-    def plot(self):
-
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.set_xlim(0, self.size)
-        ax.set_ylim(0, self.size)
-        ax.set_xticks(np.arange(0, self.size + 1, 1))
-        ax.set_yticks(np.arange(0, self.size + 1, 1))
-        ax.grid(which='both', color='black', linewidth=1)
-
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-
-        # draw subgrid boundaries
-        subgrid_ids = np.unique(self.subgrid)
-        for subgrid_id in subgrid_ids:
-            # find coordinates of the cells in current subgrid
-            rows, cols = np.where(self.subgrid == subgrid_id)
-            if len(rows) > 0 and len(cols) > 0:
-                # determine bounding box for subgrid
-                min_row, max_row = rows.min(), rows.max()
-                min_col, max_col = cols.min(), cols.max()
-
-                # convert grid coordinates to plot coordinates
-                lower_left = (min_col, self.size - 1 - max_row)
-                width = max_col - min_col + 1
-                height = max_row - min_row + 1
-
-                # rectangle patch for subgrid boundary
-                rect = patches.Rectangle(lower_left, width, height,
-                                         linewidth=2.5, edgecolor='black', facecolor='none')
-                ax.add_patch(rect)
-
-        # fill in numbers from grid
-        for i in range(self.size):
-            for j in range(self.size):
-                num = self.board[i, j]
-                if num != 0:
-                    ax.text(j + 0.5, self.size - i - 0.5, str(num),
-                            fontsize=20, ha='center', va='center')
-
-        plt.show()
-
-
     def generate_sudoku(self):
         logger.info("Making sudoku...")
         if self.populate_board():
@@ -240,10 +202,10 @@ class Sudoku:
 
 
 def get_cli_args():
-    parser = argparse.ArgumentParser(description="Sudoku CLI")
+    parser = argparse.ArgumentParser(description="Pseudoku CLI")
     parser.add_argument('-d', '--difficulty', type=str, choices=['easy', 'medium', 'hard', 'extreme'],
                         help='Difficulty level')
-    parser.add_argument('-t', '--type', type=str, choices=['std', 'rare'],
+    parser.add_argument('-t', '--type', type=str, choices=['standard', 'hypergrid'],
                         help='Sudoku type')
     parser.add_argument('-s', '--size', type=int, choices=[4, 9, 16],
                         help='Grid size')
@@ -257,13 +219,13 @@ def get_interactive_args(cli_args):
             'difficulty',
             message="Difficulty?",
             choices=['easy', 'medium', 'hard', 'extreme'],
-            default=cli_args.difficulty if cli_args.difficulty else 'Easy'
+            default=cli_args.difficulty if cli_args.difficulty else 'easy'
         ),
         inquirer.List(
             'type',
             message="Type?",
-            choices=['std', 'rare'],
-            default=cli_args.type if cli_args.type else 'std'
+            choices=['standard', 'hypergrid'],
+            default=cli_args.type if cli_args.type else 'standard'
         ),
         inquirer.List(
             'size',
@@ -278,30 +240,34 @@ def get_interactive_args(cli_args):
 def main():
     cli_args = get_cli_args()
 
+    # only 'difficulty' is a required flag
     if cli_args.difficulty is not None:
         difficulty = cli_args.difficulty
-        if cli_args.type:
-            grid_type = cli_args.type  # grid_type remains available if you need it later
-        else:
-            grid_type = 'std'
-        if cli_args.size:
-            size = cli_args.size
-        else:
-            size = 9
+        grid_type = 'standard' if not cli_args.size else cli_args.size
+        size = 9 if not cli_args.size else cli_args.size
+
     else:
         answers = get_interactive_args(cli_args)
         difficulty = answers['difficulty']
         grid_type = answers['type']
         size = answers['size']
 
-    regular_subgrid = RegularSubgrid(size)
+    match grid_type:
+        case 'standard':
+            subgrids = [RegularSubgrid(size=size)]
+        case 'hypergrid':
+            subgrids = [RegularSubgrid(size=size), HyperSubgrid(size=size)]
+        case _:
+            raise RuntimeError('Unknown grid type')
 
     sudoku = Sudoku(
         size=size,
         difficulty=difficulty,
-        subgrid=regular_subgrid)
+        subgrids=[subgrids])
 
     sudoku.generate_sudoku()
+
+    plot(sudoku)
 
 
 if __name__ == '__main__':
