@@ -22,11 +22,11 @@ For example,
 ```
 pseudoku -difficulty hard -type standard -size 16
 ```
-![alt text](https://github.com/aniquelodewijkx/pseudoku/blob/main/images/regular_hard_16.jpg?raw=true)
+![alt text](https://https://github.com/aniquelodewijkx1/pseudoku/blob/main/images/hyper_easy_9x9.png)
 ```
 pseudoku -d easy -t hypergrid -s 9
 ```
-![alt text](https://github.com/aniquelodewijkx/pseudoku/blob/main/images/hyper_easy_9x9.jpg?raw=true)
+![alt text](https://github.com/aniquelodewijkx/pseudoku/blob/main/images/hyper_easy_9x9.png)
 
 If you do not include one of the required flags, don't worry! You will be prompted to enter these.
 
