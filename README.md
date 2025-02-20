@@ -22,12 +22,18 @@ For example,
 ```
 pseudoku -difficulty hard -type standard -size 16
 ```
-![alt text](https://https://github.com/aniquelodewijkx1/pseudoku/blob/main/images/hyper_easy_9x9.png)
+
+<div style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/aniquelodewijkx1/pseudoku/main/images/hyper_easy_9x9.png" alt="hyper easy puzzle" width="250">
+</div>
+
 ```
 pseudoku -d easy -t hypergrid -s 9
 ```
-![alt text](https://github.com/aniquelodewijkx/pseudoku/blob/main/images/hyper_easy_9x9.png)
 
+<div style="text-align: center;">
+  <img src="https://raw.githubusercontent.com/aniquelodewijkx1/pseudoku/main/images/regular_hard_16x16.png" alt="hyper easy puzzle" width="250">
+</div>
 If you do not include one of the required flags, don't worry! You will be prompted to enter these.
 
 **Note** if you create a hyper sudoku on a 4x4 puzzle, the values in the hypergrid will be the only empty ones,
