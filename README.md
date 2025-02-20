@@ -41,4 +41,5 @@ If you do not include one of the required flags, don't worry! You will be prompt
 or else a single solution is mathematically impossible. 
 
 ## Output
-Sudoku puzzle ready for you to download!
+Sudoku puzzle will pop up in a new interactive window.
+After entering values you can press 'Check' and see if any entries are incorrect.
